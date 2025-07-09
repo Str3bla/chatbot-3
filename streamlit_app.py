@@ -36,36 +36,39 @@ st.markdown("---")
 # =============================================================================
 # API TEST BUTTONS
 # =============================================================================
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
-    test_basic = st.button("🧪 Test Basic API Call", type="primary")
+    test_zoho = st.button("🔧 Test Zoho API Call", type="primary")
 
 with col2:
-    test_similarity = st.button("🎯 Test for Similarity Analysis", type="secondary")
+    test_openai = st.button("🧠 Test OpenAI API Call", type="secondary")
+
+with col3:
+    test_full = st.button("🎯 Test Full Pipeline", disabled=True, help="Coming soon - after Pinecone integration")
 
 st.markdown("---")
 
 # =============================================================================
-# BASIC API TEST
+# ZOHO API TEST
 # =============================================================================
-if test_basic and job_id_input:
-    with st.spinner(f"Testing API call for Job ID: {job_id_input}..."):
+if test_zoho and job_id_input:
+    with st.spinner(f"Testing Zoho API call for Job ID: {job_id_input}..."):
         
         # Call the Zoho API using our imported function
         data = fetch_job_data(job_id_input)
         
         if data and not data.get("error"):
-            st.success("✅ API call successful!")
+            st.success("✅ Zoho API call successful!")
             
             # Show raw response (collapsed by default)
-            with st.expander("📊 Raw API Response", expanded=False):
+            with st.expander("📊 Raw Zoho API Response", expanded=False):
                 st.json(data)
             
             # Extract and display job info using our imported function
             job_info = extract_job_info(data)
             if job_info:
-                st.subheader("🎯 Job Information")
+                st.subheader("🎯 Job Information from Zoho")
                 
                 # Create clean display table
                 display_data = [
@@ -79,8 +82,6 @@ if test_basic and job_id_input:
                     {"Field": "Experience Required", "Value": job_info['work_experience']},
                     {"Field": "Client", "Value": job_info['client_name']},
                     {"Field": "Account Manager", "Value": job_info['account_manager']},
-                    {"Field": "Date Opened", "Value": job_info['date_opened']},
-                    {"Field": "Target Date", "Value": job_info['target_date']},
                 ]
                 
                 df = pd.DataFrame(display_data)
@@ -88,7 +89,7 @@ if test_basic and job_id_input:
                 
                 # Show job description
                 if job_info['job_description']:
-                    st.subheader("📄 Job Description")
+                    st.subheader("📄 Job Description from Zoho")
                     st.text_area(
                         "Raw Description (with HTML):", 
                         job_info['job_description'][:500] + "..." if len(job_info['job_description']) > 500 else job_info['job_description'], 
@@ -96,55 +97,53 @@ if test_basic and job_id_input:
                         disabled=True
                     )
         else:
-            st.error("❌ API call failed")
+            st.error("❌ Zoho API call failed")
             if data and data.get("message"):
                 st.error(f"Error: {data['message']}")
 
 # =============================================================================
-# SIMILARITY-READY TEST
+# OPENAI API TEST  
 # =============================================================================
-if test_similarity and job_id_input:
-    with st.spinner(f"Preparing job data for similarity analysis..."):
+if test_openai and job_id_input:
+    with st.spinner(f"Testing OpenAI API call for Job ID: {job_id_input}..."):
         
         # Get job data formatted for similarity using our imported function
         similarity_data = get_job_for_similarity(job_id_input)
         
         if similarity_data:
-            st.success("✅ Job data ready for similarity analysis!")
+            st.success("✅ Job data ready for OpenAI embedding!")
             
-            st.subheader("🎯 Similarity-Ready Data")
+            st.subheader("🧠 OpenAI API Test")
             
-            # Show key fields
+            # Show what we'll embed
             st.write(f"**Job ID:** {similarity_data['job_id']}")
-            st.write(f"**Requisition:** {similarity_data['requisition_number']}")
             st.write(f"**Title:** {similarity_data['title']}")
             
-            # Show clean description
-            st.subheader("📝 Cleaned Job Description")
+            # Show clean description that will be embedded
+            st.subheader("📝 Text to Embed")
+            embed_text = similarity_data['clean_description'][:1000]  # Truncate for display
             st.text_area(
-                "Ready for embedding/vectorization:",
-                similarity_data['clean_description'][:800] + "..." if len(similarity_data['clean_description']) > 800 else similarity_data['clean_description'],
-                height=300,
+                "This text will be sent to OpenAI for embedding:",
+                embed_text + "..." if len(similarity_data['clean_description']) > 1000 else embed_text,
+                height=200,
                 disabled=True
             )
             
-            # Show metadata
-            st.subheader("📊 Metadata for Analysis")
-            metadata_df = pd.DataFrame([
-                {"Field": "Salary", "Value": similarity_data['metadata']['salary']},
-                {"Field": "Status", "Value": similarity_data['metadata']['status']},
-                {"Field": "Remote", "Value": similarity_data['metadata']['remote']},
-                {"Field": "Experience", "Value": similarity_data['metadata']['experience_required']},
-                {"Field": "Client", "Value": similarity_data['metadata']['client']},
-            ])
-            st.dataframe(metadata_df, use_container_width=True, hide_index=True)
-            
-            # Character count for embedding
+            # Character count
             char_count = len(similarity_data['clean_description'])
-            st.info(f"📏 **Character Count:** {char_count:,} characters (ready for OpenAI embedding)")
+            st.info(f"📏 **Character Count:** {char_count:,} characters")
+            
+            # Placeholder for actual OpenAI call (coming next)
+            st.warning("🚧 **OpenAI API integration coming next!** Currently showing prepared data only.")
             
         else:
-            st.error("❌ Failed to prepare job data for similarity analysis")
+            st.error("❌ Failed to prepare job data for OpenAI embedding")
+
+# =============================================================================
+# FULL PIPELINE TEST (Placeholder)
+# =============================================================================
+if test_full:
+    st.info("🚧 **Full Pipeline Test** - Coming after Pinecone integration!")
 
 # =============================================================================
 # HELP SECTION
