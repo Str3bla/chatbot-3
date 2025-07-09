@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 # =============================================================================
 # ZOHO RECRUIT API CREDENTIALS
 # =============================================================================
-ZOHO_ACCESS_TOKEN = "1000.10f6148e93b1fcc6ff861ebcf99eff58.daaf3905f00339f0de86e367e9281280"
+ZOHO_ACCESS_TOKEN = "1000.bee988d6f88dee9a6d5c642d3784b8e3.7bbdcbd5fce82e85d75862beaf5ecba5"
 ZOHO_BASE_URL = "https://recruit.zoho.com/recruit/v2"
 
 # =============================================================================
