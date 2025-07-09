@@ -1,56 +1,167 @@
+# streamlit_app.py - Main Streamlit Application
 import streamlit as st
-from openai import OpenAI
+import pandas as pd
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+# Import our custom Zoho API module
+from zoho_api import fetch_job_data, extract_job_info, get_job_for_similarity
+
+# =============================================================================
+# STREAMLIT APP - ZOHO API TESTING WITH USER INPUT
+# =============================================================================
+
+st.title("🎯 Zoho API Test - Interactive Job Lookup")
+st.write("Test Zoho API calls with any Job Opening ID")
+
+st.markdown("---")
+
+# =============================================================================
+# USER INPUT SECTION
+# =============================================================================
+st.subheader("📋 Job Lookup")
+
+# Freeform text input for Job ID
+job_id_input = st.text_input(
+    "Enter Zoho Job Opening ID:",
+    value="821313000000528968",  # Default to working ID
+    placeholder="e.g., 821313000000528968",
+    help="Enter the internal Zoho Job Opening ID (long numeric string)"
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# Display current input
+if job_id_input:
+    st.info(f"**Testing Job ID:** {job_id_input}")
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+st.markdown("---")
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+# =============================================================================
+# API TEST BUTTONS
+# =============================================================================
+col1, col2 = st.columns(2)
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+with col1:
+    test_basic = st.button("🧪 Test Basic API Call", type="primary")
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+with col2:
+    test_similarity = st.button("🎯 Test for Similarity Analysis", type="secondary")
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+st.markdown("---")
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+# =============================================================================
+# BASIC API TEST
+# =============================================================================
+if test_basic and job_id_input:
+    with st.spinner(f"Testing API call for Job ID: {job_id_input}..."):
+        
+        # Call the Zoho API using our imported function
+        data = fetch_job_data(job_id_input)
+        
+        if data and not data.get("error"):
+            st.success("✅ API call successful!")
+            
+            # Show raw response (collapsed by default)
+            with st.expander("📊 Raw API Response", expanded=False):
+                st.json(data)
+            
+            # Extract and display job info using our imported function
+            job_info = extract_job_info(data)
+            if job_info:
+                st.subheader("🎯 Job Information")
+                
+                # Create clean display table
+                display_data = [
+                    {"Field": "Job ID", "Value": job_info['job_id']},
+                    {"Field": "Requisition Number", "Value": job_info['requisition_number']},
+                    {"Field": "Job Title", "Value": job_info['job_title']},
+                    {"Field": "Posting Title", "Value": job_info['posting_title']},
+                    {"Field": "Salary", "Value": f"{job_info['currency']}{job_info['salary']}" if job_info['salary'] else "Not specified"},
+                    {"Field": "Status", "Value": job_info['status']},
+                    {"Field": "Remote Job", "Value": "Yes" if job_info['remote_job'] else "No"},
+                    {"Field": "Experience Required", "Value": job_info['work_experience']},
+                    {"Field": "Client", "Value": job_info['client_name']},
+                    {"Field": "Account Manager", "Value": job_info['account_manager']},
+                    {"Field": "Date Opened", "Value": job_info['date_opened']},
+                    {"Field": "Target Date", "Value": job_info['target_date']},
+                ]
+                
+                df = pd.DataFrame(display_data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+                
+                # Show job description
+                if job_info['job_description']:
+                    st.subheader("📄 Job Description")
+                    st.text_area(
+                        "Raw Description (with HTML):", 
+                        job_info['job_description'][:500] + "..." if len(job_info['job_description']) > 500 else job_info['job_description'], 
+                        height=200, 
+                        disabled=True
+                    )
+        else:
+            st.error("❌ API call failed")
+            if data and data.get("message"):
+                st.error(f"Error: {data['message']}")
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+# =============================================================================
+# SIMILARITY-READY TEST
+# =============================================================================
+if test_similarity and job_id_input:
+    with st.spinner(f"Preparing job data for similarity analysis..."):
+        
+        # Get job data formatted for similarity using our imported function
+        similarity_data = get_job_for_similarity(job_id_input)
+        
+        if similarity_data:
+            st.success("✅ Job data ready for similarity analysis!")
+            
+            st.subheader("🎯 Similarity-Ready Data")
+            
+            # Show key fields
+            st.write(f"**Job ID:** {similarity_data['job_id']}")
+            st.write(f"**Requisition:** {similarity_data['requisition_number']}")
+            st.write(f"**Title:** {similarity_data['title']}")
+            
+            # Show clean description
+            st.subheader("📝 Cleaned Job Description")
+            st.text_area(
+                "Ready for embedding/vectorization:",
+                similarity_data['clean_description'][:800] + "..." if len(similarity_data['clean_description']) > 800 else similarity_data['clean_description'],
+                height=300,
+                disabled=True
+            )
+            
+            # Show metadata
+            st.subheader("📊 Metadata for Analysis")
+            metadata_df = pd.DataFrame([
+                {"Field": "Salary", "Value": similarity_data['metadata']['salary']},
+                {"Field": "Status", "Value": similarity_data['metadata']['status']},
+                {"Field": "Remote", "Value": similarity_data['metadata']['remote']},
+                {"Field": "Experience", "Value": similarity_data['metadata']['experience_required']},
+                {"Field": "Client", "Value": similarity_data['metadata']['client']},
+            ])
+            st.dataframe(metadata_df, use_container_width=True, hide_index=True)
+            
+            # Character count for embedding
+            char_count = len(similarity_data['clean_description'])
+            st.info(f"📏 **Character Count:** {char_count:,} characters (ready for OpenAI embedding)")
+            
+        else:
+            st.error("❌ Failed to prepare job data for similarity analysis")
+
+# =============================================================================
+# HELP SECTION
+# =============================================================================
+st.markdown("---")
+st.subheader("💡 How to Use")
+
+st.markdown("""
+**Step 1:** Enter a Zoho Job Opening ID in the text box above
+
+**Step 2:** Choose your test type:
+- **Basic API Call:** Tests raw API connection and shows all job data
+- **Similarity Analysis:** Prepares data specifically for embedding/vectorization
+
+**Step 3:** Review the results and job description data
+
+**Next Steps:** Once this works, we can build the OpenAI embedding and Pinecone integration!
+""")
+
+st.info("💡 This modular approach separates API logic from UI, making it easy to reuse the Zoho functions in other scripts.")
