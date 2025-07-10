@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 # =============================================================================
 # ZOHO RECRUIT API CREDENTIALS
 # =============================================================================
-ZOHO_ACCESS_TOKEN = "1000.382056526647957a53be58814ab19fb1.375e6420082afe16a73cd85acd154eb3"
+ZOHO_ACCESS_TOKEN = os.getenv('ZOHO_ACCESS_TOKEN')  # Changed from hardcoded
 ZOHO_BASE_URL = "https://recruit.zoho.com/recruit/v2"
 
 # =============================================================================
