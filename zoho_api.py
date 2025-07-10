@@ -311,3 +311,49 @@ def get_job_for_similarity(job_id: str) -> Optional[Dict[str, str]]:
     }
     
     return similarity_data
+
+def get_fresh_access_token_from_refresh(refresh_token: str) -> Optional[Dict[str, Any]]:
+    """
+    Get fresh access token using refresh token - exactly like the working curl command
+    
+    Args:
+        refresh_token: The refresh token from user input
+        
+    Returns:
+        Dict with new tokens or error info
+    """
+    token_url = "https://accounts.zoho.com/oauth/v2/token"
+    
+    payload = {
+        'grant_type': 'authorization_code',  # Using same as working curl
+        'client_id': ZOHO_CLIENT_ID,
+        'client_secret': ZOHO_CLIENT_SECRET,
+        'redirect_uri': 'http://localhost',
+        'code': refresh_token
+    }
+    
+    try:
+        response = requests.post(token_url, data=payload)
+        
+        if response.status_code == 200:
+            token_data = response.json()
+            return {
+                "success": True,
+                "access_token": token_data.get('access_token'),
+                "refresh_token": token_data.get('refresh_token'),
+                "expires_in": token_data.get('expires_in', 3600),
+                "raw_response": token_data
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"HTTP {response.status_code}",
+                "message": response.text
+            }
+            
+    except Exception as e:
+        return {
+            "success": False,
+            "error": "Request failed",
+            "message": str(e)
+        }
