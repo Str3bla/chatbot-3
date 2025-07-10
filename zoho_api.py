@@ -1,13 +1,18 @@
 # zoho_api.py - Zoho Recruit API Module
 import requests
 import re
+import os
 from typing import Optional, Dict, Any
 
 # =============================================================================
-# ZOHO RECRUIT API CREDENTIALS
+# ZOHO RECRUIT API CREDENTIALS - FROM ENVIRONMENT VARIABLES
 # =============================================================================
-ZOHO_ACCESS_TOKEN = os.getenv('ZOHO_ACCESS_TOKEN')  # Changed from hardcoded
+ZOHO_ACCESS_TOKEN = os.getenv('ZOHO_ACCESS_TOKEN')
 ZOHO_BASE_URL = "https://recruit.zoho.com/recruit/v2"
+
+# Validate that required environment variables are set
+if not ZOHO_ACCESS_TOKEN:
+    raise ValueError("ZOHO_ACCESS_TOKEN environment variable is required but not set")
 
 # =============================================================================
 # ZOHO API FUNCTIONS
